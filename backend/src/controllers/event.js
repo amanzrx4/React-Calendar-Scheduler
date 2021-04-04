@@ -34,13 +34,39 @@ exports.createEvent = async (req,res,next) => {
 exports.getEvent = async (req,res,next) => {
 
     try{
-        let eventList =  await Event.find()
+        Event.find({"userId" : req.params.id} ,(err , items) => {
+          if(err){
+            console.log("ERORRRRRRRRRRRRRRR");
+          }
+          if(items){
+            res.status(200).send(items);
+          }
+        })
         // console.log(response);
 
-        res.status(200).send(eventList);
+        // res.status(200).send(eventList);
     }
     catch(err) {
         res.send("Error while loading Event Data")        
+    }
+    
+}
+
+exports.deleteEvent = async (req,res,next) => {
+
+    try{
+      Event.findOneAndRemove({_id: req.params.id}, function(err,items)
+      {
+         if(err){
+            console.log("ERORRRRRRRRRRRRRRR");
+          }
+          if(items){
+            res.status(200).json({ message : "Successfully Deleted" });
+          }
+        })
+    }
+    catch(err) {
+        res.send("Error while Deleting Event Data")        
     }
     
 }
