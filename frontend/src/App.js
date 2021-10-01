@@ -1,67 +1,67 @@
-import React from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import '@mobiscroll/react/dist/css/mobiscroll.min.css';
-import { Eventcalendar, snackbar, setOptions, Popup, Button, Input, Textarea, Switch, Datepicker, SegmentedGroup, SegmentedItem } from '@mobiscroll/react';
+import { defaultEvents } from './defaultEvents';
+import {
+    Eventcalendar,
+    snackbar,
+    setOptions,
+    Popup,
+    Button,
+    Input,
+    Textarea,
+    Switch,
+    Datepicker,
+    SegmentedGroup,
+    SegmentedItem,
+} from '@mobiscroll/react';
 
 setOptions({
     theme: 'ios',
-    themeVariant: 'light'
+    themeVariant: 'light',
 });
 
-const now = new Date();
-const defaultEvents = [{
-    id: 1,
-    start: new Date(now.getFullYear(), now.getMonth(), 8, 13),
-    end: new Date(now.getFullYear(), now.getMonth(), 8, 13, 30),
-    title: 'Lunch @ Butcher\'s',
-    color: '#26c57d'
-}, {
-    id: 2,
-    start: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 15),
-    end: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 16),
-    title: 'General orientation',
-    color: '#fd966a'
-}, {
-    id: 3,
-    start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 18),
-    end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 22),
-    title: 'Dexter BD',
-    color: '#37bbe4'
-}, {
-    id: 4,
-    start: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 10, 30),
-    end: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 11, 30),
-    title: 'Stakeholder mtg.',
-    color: '#d00f0f'
-}];
-
 const viewSettings = {
-    calendar: { labels: true }
+    calendar: { labels: true },
 };
+
+const now = new Date();
+
 const responsivePopup = {
     medium: {
         display: 'anchored',
         width: 400,
         fullScreen: false,
-        touchUi: false
-    }
+        touchUi: false,
+    },
 };
 
 function App() {
-    const [myEvents, setMyEvents] = React.useState(defaultEvents);
-    const [tempEvent, setTempEvent] = React.useState(null);
-    const [isOpen, setOpen] = React.useState(false);
-    const [isEdit, setEdit] = React.useState(false);
-    const [anchor, setAnchor] = React.useState(null);
-    const [start, startRef] = React.useState(null);
-    const [end, endRef] = React.useState(null);
-    const [popupEventTitle, setTitle] = React.useState('');
-    const [popupEventDescription, setDescription] = React.useState('');
-    const [popupEventAllDay, setAllDay] = React.useState(true);
-    const [popupEventDate, setDate] = React.useState([]);
-    const [popupEventStatus, setStatus] = React.useState('busy');
-    const [mySelectedDate, setSelectedDate] = React.useState(now);
+    const [myEvents, setMyEvents] = useState(defaultEvents);
+    const [tempEvent, setTempEvent] = useState(null);
+    const [isOpen, setOpen] = useState(false);
+    const [isEdit, setEdit] = useState(false);
+    const [anchor, setAnchor] = useState(null);
+    const [start, startRef] = useState(null);
+    const [end, endRef] = useState(null);
+    const [popupEventTitle, setTitle] = useState('');
+    const [popupEventDescription, setDescription] = useState('');
+    const [popupEventAllDay, setAllDay] = useState(true);
+    const [popupEventDate, setDate] = useState([]);
+    const [popupEventStatus, setStatus] = useState('busy');
+    const [mySelectedDate, setSelectedDate] = useState(now);
 
-    const saveEvent = React.useCallback(() => {
+    useEffect(() => {
+        const updatedDefaultEvents = localStorage.getItem('events')
+            ? defaultEvents.concat(localStorage.getItem('events'))
+            : null;
+        setMyEvents(updatedDefaultEvents);
+    }, []);
+
+    useEffect(() => {
+        localStorage.setItem('events', myEvents);
+    }, [myEvents]);
+
+    const saveEvent = useCallback(() => {
         const newEvent = {
             id: tempEvent.id,
             title: popupEventTitle,
@@ -70,16 +70,17 @@ function App() {
             end: popupEventDate[1],
             allDay: popupEventAllDay,
             status: popupEventStatus,
-            color: popupEventStatus==='busy' ? '#A52A2A' : '#26c57d'
-            
+            color: popupEventStatus === 'busy' ? '#A52A2A' : '#26c57d',
         };
         if (isEdit) {
             // update the event in the list
-            const index = myEvents.findIndex(x => x.id === tempEvent.id);;
+            const index = myEvents.findIndex((x) => x.id === tempEvent.id);
             const newEventList = [...myEvents];
 
             newEventList.splice(index, 1, newEvent);
+
             setMyEvents(newEventList);
+
             // here you can update the event in your storage as well
             // ...
         } else {
@@ -91,24 +92,36 @@ function App() {
         setSelectedDate(popupEventDate[0]);
         // close the popup
         setOpen(false);
-    }, [isEdit, myEvents, popupEventAllDay, popupEventDate, popupEventDescription, popupEventStatus, popupEventTitle, tempEvent]);
+    }, [
+        isEdit,
+        myEvents,
+        popupEventAllDay,
+        popupEventDate,
+        popupEventDescription,
+        popupEventStatus,
+        popupEventTitle,
+        tempEvent,
+    ]);
 
-    const deleteEvent = React.useCallback((event) => {
-        setMyEvents(myEvents.filter(item => item.id !== event.id));
-        setTimeout(() => {
-            snackbar({
-                button: {
-                    action: () => {
-                        setMyEvents(prevEvents => [...prevEvents, event]);
+    const deleteEvent = useCallback(
+        (event) => {
+            setMyEvents(myEvents.filter((item) => item.id !== event.id));
+            setTimeout(() => {
+                snackbar({
+                    button: {
+                        action: () => {
+                            setMyEvents((prevEvents) => [...prevEvents, event]);
+                        },
+                        text: 'Undo',
                     },
-                    text: 'Undo'
-                },
-                message: 'Event deleted'
-            });
-        },500);
-    }, [myEvents]);
+                    message: 'Event deleted',
+                });
+            }, 500);
+        },
+        [myEvents]
+    );
 
-    const loadPopupForm = React.useCallback((event) => {
+    const loadPopupForm = useCallback((event) => {
         setTitle(event.title);
         setDescription(event.description);
         setDate([event.start, event.end]);
@@ -118,83 +131,104 @@ function App() {
 
     // handle popup form changes
 
-    const titleChange = React.useCallback((ev) => {
+    const titleChange = useCallback((ev) => {
         setTitle(ev.target.value);
     }, []);
 
-    const descriptionChange = React.useCallback((ev) => {
+    const descriptionChange = useCallback((ev) => {
         setDescription(ev.target.value);
     }, []);
 
-    const allDayChange = React.useCallback((ev) => {
+    const allDayChange = useCallback((ev) => {
         setAllDay(ev.target.checked);
     }, []);
 
-    const dateChange = React.useCallback((args) => {
+    const dateChange = useCallback((args) => {
         setDate(args.value);
     }, []);
 
-    const statusChange = React.useCallback((ev) => {
+    const statusChange = useCallback((ev) => {
         setStatus(ev.target.value);
     }, []);
 
-    const onDeleteClick = React.useCallback(() => {
+    const onDeleteClick = useCallback(() => {
         deleteEvent(tempEvent);
         setOpen(false);
     }, [deleteEvent, tempEvent]);
 
     // scheduler options
 
-    const onSelectedDateChange = React.useCallback((event) => {
+    const onSelectedDateChange = useCallback((event) => {
         setSelectedDate(event.date);
     });
 
-    const onEventClick = React.useCallback((args) => {
-        setEdit(true);
-        setTempEvent({ ...args.event });
-        // fill popup form with event data
-        loadPopupForm(args.event);
-        setAnchor(args.domEvent.target);
-        setOpen(true);
-    }, [loadPopupForm]);
+    const onEventClick = useCallback(
+        (args) => {
+            setEdit(true);
+            setTempEvent({ ...args.event });
+            // fill popup form with event data
+            loadPopupForm(args.event);
+            setAnchor(args.domEvent.target);
+            setOpen(true);
+        },
+        [loadPopupForm]
+    );
 
-    const onEventCreated = React.useCallback((args) => {
-        // createNewEvent(args.event, args.target)
-        setEdit(false);
-        setTempEvent(args.event)
-        // fill popup form with event data
-        loadPopupForm(args.event);
-        setAnchor(args.target);
-        // open the popup
-        setOpen(true);
-    }, [loadPopupForm]);
+    const onEventCreated = useCallback(
+        (args) => {
+            // createNewEvent(args.event, args.target)
+            setEdit(false);
+            setTempEvent(args.event);
+            // fill popup form with event data
+            loadPopupForm(args.event);
+            setAnchor(args.target);
+            // open the popup
+            setOpen(true);
+        },
+        [loadPopupForm]
+    );
 
-    const onEventDeleted = React.useCallback((args) => {
-        deleteEvent(args.event)
-    }, [deleteEvent]);
+    const onEventDeleted = useCallback(
+        (args) => {
+            deleteEvent(args.event);
+        },
+        [deleteEvent]
+    );
 
-    const onEventUpdated = React.useCallback((args) => {
+    const onEventUpdated = useCallback((args) => {
         // here you can update the event in your storage as well, after drag & drop or resize
         // ...
     }, []);
 
     // datepicker options
-    const controls = React.useMemo(() => popupEventAllDay ? ['date'] : ['datetime'], [popupEventAllDay]);
-    const respSetting = React.useMemo(() => popupEventAllDay ? {
-        medium: {
-            controls: ['calendar'],
-            touchUi: false
-        }
-    } : {
-            medium: {
-                controls: ['calendar', 'time'],
-                touchUi: false
-            }
-        }, [popupEventAllDay]);
+    const controls = useMemo(
+        () => (popupEventAllDay ? ['date'] : ['datetime']),
+        [popupEventAllDay]
+    );
+    const respSetting = useMemo(
+        () =>
+            popupEventAllDay
+                ? {
+                      medium: {
+                          controls: ['calendar'],
+                          touchUi: false,
+                      },
+                  }
+                : {
+                      medium: {
+                          controls: ['calendar', 'time'],
+                          touchUi: false,
+                      },
+                  },
+        [popupEventAllDay]
+    );
 
     // popup options
-    const headerText = React.useMemo(() => isEdit ? 'Edit event' : 'New Event', [isEdit]);
-    const popupButtons = React.useMemo(() => {
+    const headerText = useMemo(
+        () => (isEdit ? 'Edit event' : 'New Event'),
+        [isEdit]
+    );
+    const popupButtons = useMemo(() => {
         if (isEdit) {
             return [
                 'cancel',
@@ -204,11 +238,10 @@ function App() {
                     },
                     keyCode: 'enter',
                     text: 'Save',
-                    cssClass: 'mbsc-popup-button-primary'
-                }
+                    cssClass: 'mbsc-popup-button-primary',
+                },
             ];
-        }
-        else {
+        } else {
             return [
                 'cancel',
                 {
@@ -217,13 +250,13 @@ function App() {
                     },
                     keyCode: 'enter',
                     text: 'Add',
-                    cssClass: 'mbsc-popup-button-primary'
-                }
+                    cssClass: 'mbsc-popup-button-primary',
+                },
             ];
         }
     }, [isEdit, saveEvent]);
 
-    const onClose = React.useCallback(() => {
+    const onClose = useCallback(() => {
         if (!isEdit) {
             // refresh the list, if add popup was canceled, to remove the temporary event
             setMyEvents([...myEvents]);
@@ -231,67 +264,102 @@ function App() {
         setOpen(false);
     }, [isEdit, myEvents]);
 
-    return <div>
-        <Eventcalendar
-            view={viewSettings}
-            data={myEvents}
-            clickToCreate="single"
-            dragToCreate={true}
-            dragToMove={true}
-            dragToResize={true}
-            selectedDate={mySelectedDate}
-            onSelectedDateChange={onSelectedDateChange}
-            onEventClick={onEventClick}
-            onEventCreated={onEventCreated}
-            onEventDeleted={onEventDeleted}
-            onEventUpdated={onEventUpdated}
-        />
-        <Popup
-            display="bottom"
-            fullScreen={true}
-            contentPadding={false}
-            headerText={headerText}
-            anchor={anchor}
-            buttons={popupButtons}
-            isOpen={isOpen}
-            onClose={onClose}
-            responsive={responsivePopup}
-        >
-            <div className="mbsc-form-group">
-                <Input label="Title" value={popupEventTitle} onChange={titleChange} />
-                <Textarea label="Description" value={popupEventDescription} onChange={descriptionChange} />
-            </div>
-            <div className="mbsc-form-group">
-                <Switch label="All-day" checked={popupEventAllDay} onChange={allDayChange} />
-                <Input ref={startRef} label="Starts" />
-                <Input ref={endRef} label="Ends" />
-                <Datepicker
-                    select="range"
-                    controls={controls}
-                    touchUi={true}
-                    startInput={start}
-                    endInput={end}
-                    showRangeLabels={false}
-                    responsive={respSetting}
-                    onChange={dateChange}
-                    value={popupEventDate}
-                />
-                {/* <SegmentedGroup onChange={statusChange}>
+    return (
+        <div>
+            <Eventcalendar
+                view={viewSettings}
+                data={myEvents}
+                clickToCreate='single'
+                dragToCreate={true}
+                dragToMove={true}
+                dragToResize={true}
+                selectedDate={mySelectedDate}
+                onSelectedDateChange={onSelectedDateChange}
+                onEventClick={onEventClick}
+                onEventCreated={onEventCreated}
+                onEventDeleted={onEventDeleted}
+                onEventUpdated={onEventUpdated}
+            />
+            <Popup
+                display='bottom'
+                fullScreen={true}
+                contentPadding={false}
+                headerText={headerText}
+                anchor={anchor}
+                buttons={popupButtons}
+                isOpen={isOpen}
+                onClose={onClose}
+                responsive={responsivePopup}
+            >
+                <div className='mbsc-form-group'>
+                    <Input
+                        label='Title'
+                        value={popupEventTitle}
+                        onChange={titleChange}
+                    />
+                    <Textarea
+                        label='Description'
+                        value={popupEventDescription}
+                        onChange={descriptionChange}
+                    />
+                </div>
+                <div className='mbsc-form-group'>
+                    <Switch
+                        label='All-day'
+                        checked={popupEventAllDay}
+                        onChange={allDayChange}
+                    />
+                    <Input ref={startRef} label='Starts' />
+                    <Input ref={endRef} label='Ends' />
+                    <Datepicker
+                        select='range'
+                        controls={controls}
+                        touchUi={true}
+                        startInput={start}
+                        endInput={end}
+                        showRangeLabels={false}
+                        responsive={respSetting}
+                        onChange={dateChange}
+                        value={popupEventDate}
+                    />
+                    {/* <SegmentedGroup onChange={statusChange}>
                     <SegmentedItem value="busy" checked={popupEventStatus === 'busy'}>Show as busy</SegmentedItem>
                     <SegmentedItem value="free" checked={popupEventStatus === 'free'}>Show as free</SegmentedItem>
                 </SegmentedGroup> */}
-                {/* ----------------------------------------------- */}
-                {/* CHANGING SHOW AS BUSY AND FREE TO OTHER */}
-                <SegmentedGroup onChange={statusChange}>
-                    <SegmentedItem value="busy" checked={popupEventStatus === 'busy'}>Yet to Start</SegmentedItem>
-                    <SegmentedItem value="free" checked={popupEventStatus === 'free'}>In Progress</SegmentedItem>
-                </SegmentedGroup>
-                {/* ----------------------------------------------- */}
+                    {/* ----------------------------------------------- */}
+                    {/* CHANGING SHOW AS BUSY AND FREE TO OTHER */}
+                    <SegmentedGroup onChange={statusChange}>
+                        <SegmentedItem
+                            value='busy'
+                            checked={popupEventStatus === 'busy'}
+                        >
+                            Yet to Start
+                        </SegmentedItem>
+                        <SegmentedItem
+                            value='free'
+                            checked={popupEventStatus === 'free'}
+                        >
+                            In Progress
+                        </SegmentedItem>
+                    </SegmentedGroup>
+                    {/* ----------------------------------------------- */}
 
-                {isEdit ? <div className="mbsc-button-group"><Button className="mbsc-button-block" color="danger" variant="outline" onClick={onDeleteClick}>Delete event</Button></div> : null}
-            </div>
-        </Popup>
-    </div>
+                    {isEdit ? (
+                        <div className='mbsc-button-group'>
+                            <Button
+                                className='mbsc-button-block'
+                                color='danger'
+                                variant='outline'
+                                onClick={onDeleteClick}
+                            >
+                                Delete event
+                            </Button>
+                        </div>
+                    ) : null}
+                </div>
+            </Popup>
+        </div>
+    );
 }
 
 export default App;
